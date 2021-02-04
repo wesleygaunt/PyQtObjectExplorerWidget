@@ -30,5 +30,5 @@ set_ = {"set1_item", "2", 5}
 
 app = QtWidgets.QApplication([])
 #provide the objects as arguments to the dialog to see it working
-dialog = ObjectExplorerDialog(object_)
+dialog = ObjectExplorerDialog(dict_)
 dialog.exec()
