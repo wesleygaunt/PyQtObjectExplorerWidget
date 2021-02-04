@@ -8,7 +8,9 @@ dialog = ObjectExplorerDialog(object_)
 dialog.exec()
 ```
 Will produce the following dialog. The object attributes can be filtered using the checkboxes along the top of the dialog.
+
 ![IMAGE0](https://user-images.githubusercontent.com/47778261/106953308-23b0aa80-672a-11eb-9985-2333936f5c99.png)
+
 ## Screenshots
 Viewing a Dictionary as a collection:
 
