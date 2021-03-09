@@ -1,88 +1,85 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Feb  1 21:34:12 2021
+Created on Mon Mar  8 17:15:41 2021
 
 @author: Test
 """
-from Ui_ObjectDialog import Ui_ObjectDialog
-from PyQt5 import QtWidgets, uic, QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
+from objectViewerWidgetUI import Ui_objectViewerWidget
+
 from PyQt5.QtCore import Qt 
 
 from collections import abc
 import numbers
-        
-class ObjectExplorerDialog(QtWidgets.QDialog, Ui_ObjectDialog):
+
+class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
     #class attributes - act as constants
     OBJECT_TYPE = 0
     COLLECTION_TYPE = 1
     STRING_TYPE = 2
     NUMBER_TYPE = 3
     BOOL_TYPE = 4
-    
-    def __init__(self, obj, parent=None):
-        super(ObjectExplorerDialog,self).__init__(parent)
-        
-        # Create an instance of the GUI
-        #self.ui = Ui_Dialog()
-        # Run the .setupUi() method to show the GUI
-
+    def __init__(self, *args, obj = None, **kwargs):
+        super(objectViewerWidget, self).__init__(*args, **kwargs)
         self.setupUi(self)
-        self.obj = obj
+        self.set_object_data(obj)
         
         
-        
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-        self.setWindowTitle("Object Explorer - " + str(type(self.obj).__name__))
-        self.typeLabel.setText(str(type(self.obj)))
-        
-        
-        self.callablesCheckBox.stateChanged.connect(self.callables_state_changed)
-        self.specialsCheckBox.stateChanged.connect(self.specials_state_changed)
-        self.objectCheckBox.stateChanged.connect(self.object_view_state_change)
-        self.privateCheckBox.stateChanged.connect(self.private_state_changed)
-        self.MainTable.itemChanged.connect(self.itemChanged)
-        
-        self.specials_populate = False
-        self.callables_populate = False
-        self.private_populate = False
-    
-        
-        if(isinstance(self.obj, (abc.Collection,str,numbers.Number,bool))):
-            self.objectCheckBox.setVisible(True)
-            self.callablesCheckBox.setEnabled(False)
-            self.specialsCheckBox.setEnabled(False)
-            self.privateCheckBox.setEnabled(False)
-            self.view_as_object = False
 
-
-            if(isinstance(self.obj, abc.Collection) and not isinstance(self.obj, str)):
-                #collections
-                self.obj_type = self.COLLECTION_TYPE
-             
-            #self.objectCheckBox.setChecked(True) #this will trigger collections state change and populate table
-            elif(isinstance(self.obj,str)):
-                #strings
-                self.obj_type = self.STRING_TYPE
-            
-            elif(isinstance(self.obj,numbers.Number) and not isinstance(self.obj, bool)):
-                #numerics
-                self.obj_type = self.NUMBER_TYPE
-            
-            elif(isinstance(self.obj,bool)):
-                #bools
-                self.obj_type = self.BOOL_TYPE
-
+    def set_object_data(self,obj):
+        if obj == None:
+            return
         else:
-            self.objectCheckBox.setVisible(False) #set hidden by default
-            self.callablesCheckBox.setEnabled(True)
-            self.specialsCheckBox.setEnabled(True)
-            self.privateCheckBox.setEnabled(True)
-            self.view_as_object = True
-            self.obj_type = self.OBJECT_TYPE
- 
-        self.populate_table()
         
+            self.obj = obj
+            
+            self.callablesCheckBox.stateChanged.connect(self.callables_state_changed)
+            self.specialsCheckBox.stateChanged.connect(self.specials_state_changed)
+            self.objectCheckBox.stateChanged.connect(self.object_view_state_change)
+            self.privateCheckBox.stateChanged.connect(self.private_state_changed)
+            self.MainTable.itemChanged.connect(self.itemChanged)
+            
+            self.specials_populate = False
+            self.callables_populate = False
+            self.private_populate = False
+        
+            
+            if(isinstance(self.obj, (abc.Collection,str,numbers.Number,bool))):
+                self.objectCheckBox.setVisible(True)
+                self.callablesCheckBox.setEnabled(False)
+                self.specialsCheckBox.setEnabled(False)
+                self.privateCheckBox.setEnabled(False)
+                self.view_as_object = False
+    
+    
+                if(isinstance(self.obj, abc.Collection) and not isinstance(self.obj, str)):
+                    #collections
+                    self.obj_type = self.COLLECTION_TYPE
+                 
+                #self.objectCheckBox.setChecked(True) #this will trigger collections state change and populate table
+                elif(isinstance(self.obj,str)):
+                    #strings
+                    self.obj_type = self.STRING_TYPE
+                
+                elif(isinstance(self.obj,numbers.Number) and not isinstance(self.obj, bool)):
+                    #numerics
+                    self.obj_type = self.NUMBER_TYPE
+                
+                elif(isinstance(self.obj,bool)):
+                    #bools
+                    self.obj_type = self.BOOL_TYPE
+    
+            else:
+                self.objectCheckBox.setVisible(False) #set hidden by default
+                self.callablesCheckBox.setEnabled(True)
+                self.specialsCheckBox.setEnabled(True)
+                self.privateCheckBox.setEnabled(True)
+                self.view_as_object = True
+                self.obj_type = self.OBJECT_TYPE
+     
+            self.populate_table()
 
+            
     def private_state_changed(self,state):
         if state == QtCore.Qt.Checked:
             self.private_populate = True
@@ -120,11 +117,13 @@ class ObjectExplorerDialog(QtWidgets.QDialog, Ui_ObjectDialog):
             self.specialsCheckBox.setEnabled(False)
             self.privateCheckBox.setEnabled(False)
         self.populate_table()
-                   
+               
 
     def itemChanged(self,item):
+        #to be changed in a future revision?
         row = item.row()
         column = item.column()
+        pass
     
     def populate_table(self):
         self.MainTable.clear()   
@@ -225,4 +224,4 @@ class ObjectExplorerDialog(QtWidgets.QDialog, Ui_ObjectDialog):
                 del items[item_key]
         return items
 
-
+    
