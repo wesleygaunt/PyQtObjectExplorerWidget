@@ -78,6 +78,7 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
                 self.obj_type = self.OBJECT_TYPE
      
             self.populate_table()
+            self.typeLabel.setText("Type: " + str(type(self.obj).__name__))
 
             
     def private_state_changed(self,state):
@@ -194,6 +195,7 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         else: return False
         
     def get_collection_items(self,collection):
+        #return the items in dict form
         if(isinstance(collection, abc.Mapping)): 
             items =  collection
                 
