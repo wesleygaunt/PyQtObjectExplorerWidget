@@ -2,18 +2,16 @@
 
 # Form implementation generated from reading ui file 'objectViewerDialogUI.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.3
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_ObjectDialog(object):
     def setupUi(self, ObjectDialog):
         ObjectDialog.setObjectName("ObjectDialog")
-        ObjectDialog.resize(500, 600)
+        ObjectDialog.resize(797, 600)
         self.verticalLayout = QtWidgets.QVBoxLayout(ObjectDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.objectViewerWidget = objectViewerWidget(ObjectDialog)
@@ -33,4 +31,15 @@ class Ui_ObjectDialog(object):
     def retranslateUi(self, ObjectDialog):
         _translate = QtCore.QCoreApplication.translate
         ObjectDialog.setWindowTitle(_translate("ObjectDialog", "Dialog"))
+
 from objectViewerWidget import objectViewerWidget
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    ObjectDialog = QtWidgets.QDialog()
+    ui = Ui_ObjectDialog()
+    ui.setupUi(ObjectDialog)
+    ObjectDialog.show()
+    sys.exit(app.exec_())
+

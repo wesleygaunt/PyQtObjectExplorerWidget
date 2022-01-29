@@ -6,180 +6,326 @@ Created on Mon Mar  8 17:15:41 2021
 """
 from PyQt5 import QtCore, QtGui, QtWidgets
 from objectViewerWidgetUI import Ui_objectViewerWidget
+from datetime import datetime
 
 from PyQt5.QtCore import Qt 
 
 from collections import abc
 import numbers
+import pandas as pd
+
+OBJECT_DATA_ROLE = Qt.UserRole + 0
 
 class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
     #class attributes - act as constants
     OBJECT_TYPE = 0
     COLLECTION_TYPE = 1
-    STRING_TYPE = 2
-    NUMBER_TYPE = 3
-    BOOL_TYPE = 4
-    def __init__(self, *args, obj = None, **kwargs):
+    PANDAS_TYPE = 2
+    
+    def __init__(self, 
+                 callables_populate = False,
+                 specials_populate = False,  
+                 private_populate = False,
+                 show_primitive_members = False,
+                 *args, 
+                 **kwargs):
         super(objectViewerWidget, self).__init__(*args, **kwargs)
         self.setupUi(self)
-        self.set_object_data(obj)
         
+        self.treeModel = QtGui.QStandardItemModel()
+        self.tableModel = QtGui.QStandardItemModel()
+        
+        self.stack = []
         
 
-    def set_object_data(self,obj):
-        if obj == None:
+        
+        
+        self.treeView.setModel(self.treeModel)
+        self.tableView.setModel(self.tableModel)
+        
+        self.treeView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.tableView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        
+        self.treeView.activated.connect(self.treeView_item_entered)
+        self.tableView.activated.connect(self.tableView_item_entered)
+        
+        self.tableView.hide()
+        self.treeView.hide()
+        self.optionsButton.hide()
+
+        
+        
+        self.specials_populate = specials_populate
+        self.callables_populate = callables_populate
+        self.private_populate = private_populate
+        self.show_primitive_members = show_primitive_members
+        
+        
+        
+        self.optionmenu = QtWidgets.QMenu(self)
+        
+        self.callable_action = self.optionmenu.addAction('Callable members')
+        self.callable_action.setCheckable(True)
+        self.callable_action.setChecked(self.callables_populate)
+        self.callable_action.toggled.connect(self.callables_state_changed)
+        
+        self.special_action = self.optionmenu.addAction('__special__ members')
+        self.special_action.setCheckable(True)
+        self.special_action.setChecked(self.specials_populate)
+        self.special_action.toggled.connect(self.specials_state_changed)
+        
+        self.private_action = self.optionmenu.addAction('__private members')
+        self.private_action.setCheckable(True)
+        self.private_action.setChecked(self.private_populate)
+        self.private_action.toggled.connect(self.private_state_changed)
+        
+        self.primitive_action = self.optionmenu.addAction('primitive members')
+        self.primitive_action.setCheckable(True)
+        self.primitive_action.setChecked(self.show_primitive_members)
+        self.primitive_action.toggled.connect(self.primitive_state_changed)
+        
+        upIcon = QtGui.QIcon("icons\\upLevel_icon_16px.png")
+        self.upLevelToolButton.clicked.connect(self.up_level)
+        self.upLevelToolButton.setIcon(upIcon)
+        
+        self.optionsButton.setMenu(self.optionmenu)
+        
+        self.child_widgets = []
+        
+        
+        # icon = QtGui.QIcon("icons/upLevel_icon_16px.png")
+        # self.upLevelButton.setIcon(icon)
+       
+
+
+    def set_object_data(self,obj, name, open_child_in_same_widget = False):
+        if type(obj) == None:
             return
+        
+        if(self.stack == []):
+            self.upLevelToolButton.setEnabled(False)
+        
+        self.obj = obj
+        self.name = name
+        self.setWindowTitle(self.name)
+        self.open_child_in_same_widget = open_child_in_same_widget
+        self.optionsButton.show()
+        if((type(self.obj) == pd.DataFrame) or (type(self.obj) == pd.Series)):
+            #print("pandas type")
+            self.obj_type = self.PANDAS_TYPE
+            self.tableView.show()
+            self.treeView.hide()
+            self.optionsButton.setEnabled(False)
+        elif(isinstance(self.obj, abc.Collection) and not isinstance(self.obj, str)):
+            self.obj_type = self.COLLECTION_TYPE
+            self.tableView.show()
+            self.treeView.hide()
+            self.optionsButton.setEnabled(False)
         else:
-        
-            self.obj = obj
-            
-            self.callablesCheckBox.stateChanged.connect(self.callables_state_changed)
-            self.specialsCheckBox.stateChanged.connect(self.specials_state_changed)
-            self.objectCheckBox.stateChanged.connect(self.object_view_state_change)
-            self.privateCheckBox.stateChanged.connect(self.private_state_changed)
-            self.MainTable.itemChanged.connect(self.itemChanged)
-            
-            self.specials_populate = False
-            self.callables_populate = False
-            self.private_populate = False
-        
-            
-            if(isinstance(self.obj, (abc.Collection,str,numbers.Number,bool))):
-                self.objectCheckBox.setVisible(True)
-                self.callablesCheckBox.setEnabled(False)
-                self.specialsCheckBox.setEnabled(False)
-                self.privateCheckBox.setEnabled(False)
-                self.view_as_object = False
-    
-    
-                if(isinstance(self.obj, abc.Collection) and not isinstance(self.obj, str)):
-                    #collections
-                    self.obj_type = self.COLLECTION_TYPE
-                 
-                #self.objectCheckBox.setChecked(True) #this will trigger collections state change and populate table
-                elif(isinstance(self.obj,str)):
-                    #strings
-                    self.obj_type = self.STRING_TYPE
-                
-                elif(isinstance(self.obj,numbers.Number) and not isinstance(self.obj, bool)):
-                    #numerics
-                    self.obj_type = self.NUMBER_TYPE
-                
-                elif(isinstance(self.obj,bool)):
-                    #bools
-                    self.obj_type = self.BOOL_TYPE
-    
-            else:
-                self.objectCheckBox.setVisible(False) #set hidden by default
-                self.callablesCheckBox.setEnabled(True)
-                self.specialsCheckBox.setEnabled(True)
-                self.privateCheckBox.setEnabled(True)
-                self.view_as_object = True
-                self.obj_type = self.OBJECT_TYPE
-     
-            self.populate_table()
-            self.typeLabel.setText("Type: " + str(type(self.obj).__name__))
+            self.obj_type = self.OBJECT_TYPE
+            self.tableView.hide()
+            self.treeView.show()
+            self.optionsButton.setEnabled(True)                    
+        self.populate()
 
             
     def private_state_changed(self,state):
-        if state == QtCore.Qt.Checked:
-            self.private_populate = True
-        else:
-            self.private_populate = False
-        
-        self.populate_table()
+        self.private_populate =  state       
+        self.populate()
         
     def callables_state_changed(self,state):
-        if state == QtCore.Qt.Checked:
-            self.callables_populate = True
-        else:
-            self.callables_populate = False
-        
-        self.populate_table()
+        self.callables_populate = state        
+        self.populate()
         
     def specials_state_changed(self,state):
-        if state == QtCore.Qt.Checked:
-            self.specials_populate = True
-        else:
-            self.specials_populate = False
+        self.specials_populate = state        
+        self.populate()
         
-        self.populate_table()
+    def primitive_state_changed(self,state):
+        self.show_primitive_members = state        
+        self.populate()
+        
+    def populate(self):     
+        if(self.obj_type == self.OBJECT_TYPE):
+            self.populate_tree()
+        elif(self.obj_type == self.COLLECTION_TYPE):
+            self.populate_table()
+        elif(self.obj_type == self.PANDAS_TYPE):
+            self.populate_pandas()
+        return
+        
+    def populate_tree(self):      
+        self.treeModel.clear()
+        self.treeModel.setHorizontalHeaderLabels(['Name','Type','Size','Value','Path'])
+        
+        self.treeView.header().resizeSection(0,118)
+        self.treeView.header().resizeSection(1,75)
+        self.treeView.header().resizeSection(2,39)
+        self.treeView.header().resizeSection(3,221)
+        #self.treeView.header().resizeSection(4,126)
+        
+        rootItem = self.treeModel.invisibleRootItem()
+        child_row = self.recursive_add_item(self.obj, self.name, self.name, False)        
+        rootItem.appendRow(child_row) #add all data to tree
+        self.treeView.expand(child_row[0].index()) #expands to first level
+        
     
-    def object_view_state_change(self,state):
-        if state == QtCore.Qt.Checked: #if checked, view as normal
-            self.view_as_object = True
-            self.callablesCheckBox.setEnabled(True)
-            self.specialsCheckBox.setEnabled(True)
-            self.privateCheckBox.setEnabled(True)
-            
-        else:
-            self.view_as_object = False
-            self.callablesCheckBox.setEnabled(False)
-            self.specialsCheckBox.setEnabled(False)
-            self.privateCheckBox.setEnabled(False)
-        self.populate_table()
-               
+    def recursive_add_item(self, obj_to_add, name, path, special):
+        
+        nameItem = QtGui.QStandardItem(name)
+        nameItem.setData(obj_to_add, OBJECT_DATA_ROLE)
+        typeItem = QtGui.QStandardItem(str(type(obj_to_add).__name__))
+        
+        try:
+            size = str(len(obj_to_add))
+        except:
+            size = "1"
+        sizeItem = QtGui.QStandardItem(size)
+        valueItem = QtGui.QStandardItem(str(obj_to_add))
 
-    def itemChanged(self,item):
-        #to be changed in a future revision?
-        row = item.row()
-        column = item.column()
-        pass
+        pathItem = QtGui.QStandardItem(path)
+        
+        #by default all items are generic objects
+        items = self.get_object_attributes(obj_to_add, callables = self.callables_populate, specials = self.specials_populate, privates=self.private_populate)
+        type_ = 'OBJECT'
+        icon = QtGui.QIcon("icons//object_icon_12px.png")
+        
+        if(callable(obj_to_add)):
+            icon = QtGui.QIcon("icons//method_icon_12px.png")
+        elif(type(obj_to_add) == bool):
+            icon = QtGui.QIcon("icons//bool_icon_12px.png")
+        elif(type(obj_to_add) == str):
+            icon = QtGui.QIcon("icons//string_icon_12px.png")
+        elif(type(obj_to_add) == int):
+            icon = QtGui.QIcon("icons//int_float_icon_12px.png")
+        elif(type(obj_to_add) == float):
+            icon = QtGui.QIcon("icons//float_icon_12px.png")
+        elif(type(obj_to_add) == datetime):
+            icon = QtGui.QIcon("icons//datetime_icon_12px.png")
+        elif((type(obj_to_add) == pd.DataFrame) or (type(obj_to_add) == pd.Series)):
+            icon = QtGui.QIcon("icons//dataframe_icon_12px.png")  
+        elif(isinstance(obj_to_add, abc.Collection) and not isinstance(obj_to_add, str)):
+            #this is a collection type, need to get the items
+            items = self.get_collection_items(obj_to_add) 
+            if(isinstance(obj_to_add, abc.Mapping)):
+                #dicts and mappings
+                type_ = 'MAPPING'
+                icon = QtGui.QIcon("icons//dict_icon_12px.png")
+            elif(isinstance(obj_to_add, abc.Sequence)): 
+                #lists and tuples
+                type_ = 'SEQUENCE'
+                icon = QtGui.QIcon("icons//list_icon_12px.png")
+            elif(isinstance(obj_to_add,abc.Set)):
+                type_ = 'SEQUENCE'
+                icon = QtGui.QIcon("icons//list_icon_12px.png")
+            else:
+                type_ = 'SEQUENCE'
+                icon = QtGui.QIcon("icons//list_icon_12px.png")
+
+            
+        typeItem.setIcon(icon)  
+        
+        if(special):
+            #this is a special item, so do not do recursion for it
+            return [nameItem, typeItem, sizeItem, valueItem, pathItem]
+        elif(callable(obj_to_add)):
+            #this is callable, no need for recursion
+            return [nameItem, typeItem, sizeItem, valueItem, pathItem]
+        elif(name == 'denominator' or name == 'numerator' or name == 'real' or name =='imag'):
+            return [nameItem, typeItem, sizeItem, valueItem, pathItem]
+        elif(str(type(obj_to_add).__name__) == 'DataFrame'):
+            return [nameItem, typeItem, sizeItem, valueItem, pathItem]
+        elif(type(obj_to_add) == datetime):
+            return [nameItem, typeItem, sizeItem, valueItem, pathItem]
+        elif((self.show_primitive_members == False) and (type(obj_to_add) == str or type(obj_to_add) == int or type(obj_to_add) == float or type(obj_to_add) == bool)):
+            return [nameItem, typeItem, sizeItem, valueItem, pathItem]
+
+        
+        else:
+            # print(name)
+            # print(str(type(obj_to_add).__name__))
+            for key in items:
+                #print("key : " + str(key))
+                item = items[key]
+                if(self.special(key) == True):
+                    #print("no recusion for: " + str(key))
+                    special_child = True
+                else:
+                    #print("recusion for: " + str(key))
+                    special_child = False
+    
+                if(type_ == 'MAPPING'):
+                    child_row = self.recursive_add_item(item, '\'' + str(key) + '\'', path + '[\'' + str(key) + '\']', special_child)
+                elif(type_ == 'SEQUENCE'):
+                    child_row = self.recursive_add_item(item, '[' + str(key) + ']', path + '[' + str(key) + ']',special_child)
+                elif(type_ == 'OBJECT'):
+                    child_row = self.recursive_add_item(item, str(key), path + '.' + str(key), special_child)
+    
+                    
+                nameItem.appendRow(child_row)
+                
+            return [nameItem, typeItem, sizeItem, valueItem, pathItem]
+        
+    def populate_pandas(self):
+        self.tableModel.clear()
+        
+        index_column = [str(item) for item in list(self.obj.index)]
+        if (type(self.obj) == pd.Series):
+            columns = [self.obj.name] #just one column
+            column = [QtGui.QStandardItem(str(value)) for value in list(self.obj)] 
+            self.tableModel.appendColumn(column)
+        else: #is a dataframe
+            columns = (list(self.obj.columns))
+            for col_name in self.obj:
+                column = [QtGui.QStandardItem(str(value)) for value in list(self.obj[col_name])]            
+                self.tableModel.appendColumn(column)
+        
+        self.tableModel.setHorizontalHeaderLabels(columns)
+        self.tableView.verticalHeader().setVisible(True)
+        self.tableModel.setVerticalHeaderLabels(index_column)
+        self.tableView.horizontalHeader().setStretchLastSection(False)
+        return
+        
     
     def populate_table(self):
-        self.MainTable.clear()   
-        
-        #create a dictionary which has the keys as the attribute names and the 
-        if(self.view_as_object):
-            items = self.get_object_attributes(self.obj, callables = self.callables_populate, specials = self.specials_populate, privates=self.private_populate)
-        elif(self.obj_type == self.COLLECTION_TYPE):
-            items = self.get_collection_items(self.obj)
-        elif(self.obj_type == self.STRING_TYPE or self.obj_type == self.NUMBER_TYPE or self.obj_type == self.BOOL_TYPE):
-            items = {1:str(self.obj)}
-            
-        rows = len(items)
-        self.MainTable.setRowCount(rows)
-        self.MainTable.setColumnCount(3)
-        current_row = 0
-        for key in items:
-            
-            value = items[key]       
-                        
-            key_item = QtWidgets.QTableWidgetItem(key)
-            key_item.setFlags(key_item.flags() ^ Qt.ItemIsEditable) #make uneditable
-            type_item = QtWidgets.QTableWidgetItem(str(type(value).__name__))  #https://stackoverflow.com/questions/75440/how-do-i-get-the-string-with-name-of-a-class
-            type_item.setFlags(type_item.flags() ^ Qt.ItemIsEditable)
-            value_item = QtWidgets.QTableWidgetItem(str(value))
-            value_item.setFlags(value_item.flags() ^ Qt.ItemIsEditable)
-
-
-            self.MainTable.setItem(current_row,0, key_item)
-            self.MainTable.setItem(current_row,1, type_item) 
-            self.MainTable.setItem(current_row,2, value_item)
-
-            current_row = current_row + 1
-
-        if(self.view_as_object == False):
-            if(self.obj_type == self.COLLECTION_TYPE):
-                if(isinstance(self.obj,abc.MutableMapping)):
-                    self.MainTable.setHorizontalHeaderLabels(['Key','Type','Value'])
-        
-                elif(isinstance(self.obj,(abc.Sequence))):
-                    self.MainTable.setHorizontalHeaderLabels(['Index','Type','Value'])
-                    
-                elif(isinstance(self.obj,abc.Set)):
-                    #self.MainTable.setHorizontalHeaderLabels(['','Type','Value'])
-                    if(self.MainTable.columnCount() != 2):
-                        self.MainTable.removeColumn(0) #not indexed        else:
-                        self.MainTable.setHorizontalHeaderLabels(['Type','Value'])
-            elif(self.obj_type == self.STRING_TYPE or self.obj_type == self.NUMBER_TYPE or self.obj_type == self.BOOL_TYPE):
-                if(self.MainTable.columnCount() != 1):
-                    self.MainTable.removeColumn(0) #not indexed        else:
-                    self.MainTable.removeColumn(0)
-                    self.MainTable.setHorizontalHeaderLabels(['Value'])
                 
-        else:
-            self.MainTable.setHorizontalHeaderLabels(['Name','Type','Value']) 
+        self.tableModel.clear()   
+        
+        items = self.get_collection_items(self.obj)
+
+            
+        for key in items:
+            value = items[key] 
+            
+            
+            keyItem = QtGui.QStandardItem(key)
+            keyItem.setData(value, OBJECT_DATA_ROLE)
+            typeItem = QtGui.QStandardItem(str(type(value).__name__))  #https://stackoverflow.com/questions/75440/how-do-i-get-the-string-with-name-of-a-class
+            try:
+                size = str(len(value))
+            except:
+                size = "1"
+            sizeItem = QtGui.QStandardItem(size)
+            valueItem = QtGui.QStandardItem(str(value))
+            
+            row = [keyItem, typeItem, sizeItem, valueItem]
+            self.tableModel.appendRow(row)
+
+        self.tableView.horizontalHeader().resizeSection(2,39)
+
+        if(isinstance(self.obj,abc.MutableMapping)):
+            #dict
+            self.tableModel.setHorizontalHeaderLabels(['Key','Type','Size','Value'])
+        elif(isinstance(self.obj,(abc.Sequence))):
+            #lists and tuples
+            self.tableModel.setHorizontalHeaderLabels(['Index','Type','Size','Value'])
+        elif(isinstance(self.obj,abc.Set)):
+            #sets
+            self.tableModel.setHorizontalHeaderLabels(['Index (not indexable)','Type','Size','Value'])
+            # self.tableModel.removeColumn(0) #not indexed        else:
+            # self.tableModel.setHorizontalHeaderLabels(['Type','Size','Value'])
+            
+            
             
     def special(self,attr_name):
         #tests if the attribute is a special (ie magic, dunder etc) attribute
@@ -192,13 +338,14 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         obj_name = type(obj).__name__
         if(attr_name.startswith('_' + obj_name + '__')):
             return True
-        else: return False
+        else: 
+            return False
         
     def get_collection_items(self,collection):
         #return the items in dict form
+        #print("get_collection_items : " + str(collection))
         if(isinstance(collection, abc.Mapping)): 
             items =  collection
-                
         elif(isinstance(collection, abc.Sequence)): 
             #lists and tuples
             item_keys = range(0,len(collection))
@@ -209,8 +356,9 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
             zip_items = zip(item_keys,collection)
             items = {str(item_key) : item for item_key, item in zip_items}
         else:
-            print("unknown collection type")
+            #unknown collection type
             return
+        
         return items
         
         
@@ -225,5 +373,83 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
             elif(self.private(obj, item_key) and privates == False):
                 del items[item_key]
         return items
+    
+    
+    def treeView_item_entered(self, index):
+        #print(str(index))
+        
+        #print("row: " + str(self.treeModel.itemFromIndex(index).row()) + ", col: " + str(self.treeModel.itemFromIndex(index).column()))
+        row = self.treeModel.itemFromIndex(index).row()
+        childDataItem = index.sibling(row,0)
+        pathItem = index.sibling(row, 4)
+        
+        child_name = pathItem.data()
+        
+        
+        
+        if(child_name != self.name):
+            self.show_child_widget(childDataItem, child_name)           
+        else:
+            return
+        
+    def tableView_item_entered(self,index):
+        row = self.tableModel.itemFromIndex(index).row()
+        #print(row)
+        childDataItem = index.sibling(row,0)
+        #print(childDataItem.data())
+        child_key = childDataItem.data()
+        
+        
+        if(isinstance(self.obj, abc.Mapping)):
+            child_name = self.name + '[\'' + child_key + '\']'
+           
+        elif(isinstance(self.obj, abc.Sequence)): 
+            #lists and tuples
+            child_name = self.name + '[' + child_key + ']'
+        elif(isinstance(self.obj,abc.Set)):
+            #sets
+            child_name = self.name + '[' + child_key + ']'
+        else:
+            #unknown collection type
+            return
+        
+        self.show_child_widget(childDataItem, child_name)    
+        # pathItem = index.sibling(row, 4)
+        
+        # child_name = pathItem.data()
+        
 
+    
+    def show_child_widget(self, childDataItem, child_name):  
+        child_object = childDataItem.data(OBJECT_DATA_ROLE)     
+        if(type(child_object) == None):
+            return
+        if(self.open_child_in_same_widget):
+            self.upLevelToolButton.setEnabled(True)
+            self.stack.append((self.obj, self.name)) #add to the stack
+            self.set_object_data(child_object, child_name, self.open_child_in_same_widget)
+            pass
+        else:
+            pos = self.pos()
+            pos.setX(pos.x() + 30)
+            pos.setY(pos.y() + 30)
+            
+            childObjectViewerWidget = objectViewerWidget(self.callables_populate,self.specials_populate,self.private_populate,self.show_primitive_members)
+            childObjectViewerWidget.set_object_data(child_object, child_name, self.open_child_in_same_widget)
+            childObjectViewerWidget.move(pos)
+            childObjectViewerWidget.show()
+            
+            self.child_widgets.append(childObjectViewerWidget)
+            
+    def up_level(self):
+        parent_object, parent_name = self.stack.pop()
+        self.set_object_data(parent_object, parent_name, self.open_child_in_same_widget)
+        
+    def closeEvent(self, event):
+        for widget in self.child_widgets:
+            try:
+                widget.close()
+            except:
+                pass
+        super(objectViewerWidget, self).closeEvent(event)
     

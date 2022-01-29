@@ -2,13 +2,19 @@
 
 from PyQt5 import QtWidgets
 from objectViewerDialog import objectViewerDialog
+from objectViewerWidget import objectViewerWidget
+
+from data import stocks , funds, ceres
 
 import datetime
 
 #create a test class with some methods
 class newClass():
     def __init__(self,value):
-        self.value = value
+        self.name = "Car"
+        self.length = value
+        self.height = 5
+        self.__secret = 'I\'m a secret, don\'t tell anyone!'
     def newClassFunction(self,function_arg):
         print("I'm a function")
     def __private_function(self):
@@ -18,17 +24,41 @@ class newClass():
 #objects to test:
 object_ = newClass(10)
 date = datetime.datetime(2020,1,1)
-float_ = 1.0
+float_ = 2.0
 int_ = 1
 complex_ = complex(1,1)
 string_ = "Hello, World!"
-dict_ = {"1_key": complex_,"2_key":"2_val","func":datetime.datetime.now}
-list_ = [1,2,3]
-tuple_ = ("1_tuple_val",2,3)
-set_ = {"set1_item", "2", 5}
+list1 = ["hello","world",3]
+list2 = [1,2, list1]
 
+dict_ = {"None": None,"complex number":complex_, "list":list2, 'number' : 5.3}
+
+tuple_ = ("1_tuple_val",2,3)
+set_ = {"set1_item", "2"}
+object_.dimensions = list2
+object_.bool = True
+object_.dict = dict_
+object_.equity = ceres
+
+dataframe = ceres.get_data()
+series = dataframe['CERES_POWER_HOLDINGS_PLC']
 
 app = QtWidgets.QApplication([])
-#provide the objects as arguments to the dialog to see it working
-dialog = objectViewerDialog(set_)
-dialog.exec()
+widget = objectViewerWidget()
+widget.set_object_data(object_, 'object_',open_child_in_same_widget=False)
+widget.show()
+app.exec()
+
+# app = QtWidgets.QApplication([])
+# widget2 = objectViewerWidget()
+# widget2.set_object_data(widget, 'widget')
+# widget2.show()
+# app.exec()
+
+
+
+# app = QtWidgets.QApplication([])
+# widget2 = objectViewerWidget()
+# widget2.set_object_data(widget, 'widget',True)
+# widget2.show()
+# app.exec()
