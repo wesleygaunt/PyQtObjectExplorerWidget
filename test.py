@@ -4,7 +4,6 @@ from PyQt5 import QtWidgets
 from objectViewerDialog import objectViewerDialog
 from objectViewerWidget import objectViewerWidget
 
-from data import stocks , funds, ceres
 
 import datetime
 
@@ -37,11 +36,7 @@ tuple_ = ("1_tuple_val",2,3)
 set_ = {"set1_item", "2"}
 object_.dimensions = list2
 object_.bool = True
-object_.dict = dict_
-object_.equity = ceres
 
-dataframe = ceres.get_data()
-series = dataframe['CERES_POWER_HOLDINGS_PLC']
 
 app = QtWidgets.QApplication([])
 widget = objectViewerWidget()
