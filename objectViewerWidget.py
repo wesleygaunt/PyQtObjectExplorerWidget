@@ -23,10 +23,7 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
     PANDAS_TYPE = 2
     
     def __init__(self, 
-                 callables_populate = False,
-                 specials_populate = False,  
-                 private_populate = False,
-                 show_primitive_members = False,
+                 
                  *args, 
                  **kwargs):
         super(objectViewerWidget, self).__init__(*args, **kwargs)
@@ -54,11 +51,11 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         self.optionsButton.hide()
 
         
+        self.specials_populate = False
+        self.callables_populate = False
+        self.private_populate = False
+        self.show_primitive_members = False
         
-        self.specials_populate = specials_populate
-        self.callables_populate = callables_populate
-        self.private_populate = private_populate
-        self.show_primitive_members = show_primitive_members
         
         
         
@@ -98,7 +95,12 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
        
 
 
-    def set_object_data(self,obj, name, open_child_in_same_widget = False):
+    def set_object_data(self,obj, name, open_child_in_same_widget = False, 
+        callables_populate = False,
+        specials_populate = False,  
+        private_populate = False,
+        show_primitive_members = False):
+        
         if type(obj) == None:
             return
         
@@ -125,8 +127,29 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
             self.obj_type = self.OBJECT_TYPE
             self.tableView.hide()
             self.treeView.show()
-            self.optionsButton.setEnabled(True)                    
+            self.optionsButton.setEnabled(True)      
+
+
+        self.specials_populate = specials_populate
+        self.callables_populate = callables_populate
+        self.private_populate = private_populate
+        self.show_primitive_members = show_primitive_members
+              
         self.populate()
+    
+    def set_view_options(self,
+        callables_populate = False,
+        specials_populate = False,  
+        private_populate = False,
+        show_primitive_members = False):
+        
+        self.specials_populate = specials_populate
+        self.callables_populate = callables_populate
+        self.private_populate = private_populate
+        self.show_primitive_members = show_primitive_members
+        
+        if(self.obj != None):
+            self.populate()
 
             
     def private_state_changed(self,state):
