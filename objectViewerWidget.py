@@ -29,6 +29,9 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         super(objectViewerWidget, self).__init__(*args, **kwargs)
         self.setupUi(self)
         
+        if(self.parent() == None):
+            self.layout().setContentsMargins(9,9,9,9)
+        
         self.treeModel = QtGui.QStandardItemModel()
         self.tableModel = QtGui.QStandardItemModel()
         
@@ -95,7 +98,9 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
        
 
 
-    def set_object_data(self,obj, name, open_child_in_same_widget = False, 
+    def set_object_data(self,
+        obj, name, 
+        open_child_in_same_widget = False, 
         callables_populate = False,
         specials_populate = False,  
         private_populate = False,
@@ -134,6 +139,11 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         self.callables_populate = callables_populate
         self.private_populate = private_populate
         self.show_primitive_members = show_primitive_members
+        
+        self.callable_action.setChecked(self.callables_populate)
+        self.special_action.setChecked(self.specials_populate)
+        self.private_action.setChecked(self.private_populate)
+        self.primitive_action.setChecked(self.show_primitive_members)
               
         self.populate()
     
@@ -147,6 +157,11 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         self.callables_populate = callables_populate
         self.private_populate = private_populate
         self.show_primitive_members = show_primitive_members
+        
+        self.callable_action.setChecked(self.callables_populate)
+        self.special_action.setChecked(self.specials_populate)
+        self.private_action.setChecked(self.private_populate)
+        self.primitive_action.setChecked(self.show_primitive_members)
         
         if(self.obj != None):
             self.populate()
@@ -457,8 +472,8 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
             pos.setX(pos.x() + 30)
             pos.setY(pos.y() + 30)
             
-            childObjectViewerWidget = objectViewerWidget(self.callables_populate,self.specials_populate,self.private_populate,self.show_primitive_members)
-            childObjectViewerWidget.set_object_data(child_object, child_name, self.open_child_in_same_widget)
+            childObjectViewerWidget = objectViewerWidget()
+            childObjectViewerWidget.set_object_data(child_object, child_name, self.open_child_in_same_widget, self.callables_populate,self.specials_populate,self.private_populate,self.show_primitive_members)
             childObjectViewerWidget.move(pos)
             childObjectViewerWidget.show()
             
