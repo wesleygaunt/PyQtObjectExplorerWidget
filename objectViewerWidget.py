@@ -46,8 +46,8 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         self.treeView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.tableView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         
-        self.treeView.activated.connect(self.treeView_item_entered)
-        self.tableView.activated.connect(self.tableView_item_entered)
+        self.treeView.activated.connect(self.__treeView_item_entered)
+        self.tableView.activated.connect(self.__tableView_item_entered)
         
         self.tableView.hide()
         self.treeView.hide()
@@ -67,25 +67,25 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         self.callable_action = self.optionmenu.addAction('Callable members')
         self.callable_action.setCheckable(True)
         self.callable_action.setChecked(self.callables_populate)
-        self.callable_action.toggled.connect(self.callables_state_changed)
+        self.callable_action.toggled.connect(self.__callables_state_changed)
         
         self.special_action = self.optionmenu.addAction('__special__ members')
         self.special_action.setCheckable(True)
         self.special_action.setChecked(self.specials_populate)
-        self.special_action.toggled.connect(self.specials_state_changed)
+        self.special_action.toggled.connect(self.__specials_state_changed)
         
         self.private_action = self.optionmenu.addAction('__private members')
         self.private_action.setCheckable(True)
         self.private_action.setChecked(self.private_populate)
-        self.private_action.toggled.connect(self.private_state_changed)
+        self.private_action.toggled.connect(self.__private_state_changed)
         
         self.primitive_action = self.optionmenu.addAction('primitive members')
         self.primitive_action.setCheckable(True)
         self.primitive_action.setChecked(self.show_primitive_members)
-        self.primitive_action.toggled.connect(self.primitive_state_changed)
+        self.primitive_action.toggled.connect(self.__primitive_state_changed)
         
         upIcon = QtGui.QIcon("icons\\upLevel_icon_16px.png")
-        self.upLevelToolButton.clicked.connect(self.up_level)
+        self.upLevelToolButton.clicked.connect(self.__up_level)
         self.upLevelToolButton.setIcon(upIcon)
         
         self.optionsButton.setMenu(self.optionmenu)
@@ -99,23 +99,21 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
 
 
     def set_object_data(self,
-        obj, name, 
+        obj, name,
+        open_children = True,
         open_child_in_same_widget = False, 
         callables_populate = False,
         specials_populate = False,  
         private_populate = False,
-        show_primitive_members = False):
+        show_primitive_members = False,
+        hide_options = False):
         
         if type(obj) == None:
             return
         
-        if(self.stack == []):
-            self.upLevelToolButton.setEnabled(False)
-        
         self.obj = obj
         self.name = name
         self.setWindowTitle(self.name)
-        self.open_child_in_same_widget = open_child_in_same_widget
         self.optionsButton.show()
         if((type(self.obj) == pd.DataFrame) or (type(self.obj) == pd.Series)):
             #print("pandas type")
@@ -133,66 +131,66 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
             self.tableView.hide()
             self.treeView.show()
             self.optionsButton.setEnabled(True)      
-
-
+        
+        
+        
+        if(hide_options == True):
+            self.optionsLayout.hide()
+            open_child_in_same_widget = False
+        else:
+            self.optionsLayout.show()
+            pass
+        
+        if((self.stack == []) or (open_child_in_same_widget == False) or (open_children == False)):
+            self.upLevelToolButton.hide()
+        else:
+            self.upLevelToolButton.show()
+        
+        self.open_children = open_children
+        self.open_child_in_same_widget = open_child_in_same_widget
         self.specials_populate = specials_populate
         self.callables_populate = callables_populate
         self.private_populate = private_populate
         self.show_primitive_members = show_primitive_members
+        self.hide_options = hide_options
         
         self.callable_action.setChecked(self.callables_populate)
         self.special_action.setChecked(self.specials_populate)
         self.private_action.setChecked(self.private_populate)
         self.primitive_action.setChecked(self.show_primitive_members)
+
               
-        self.populate()
+        self.__populate()
     
-    def set_view_options(self,
-        callables_populate = False,
-        specials_populate = False,  
-        private_populate = False,
-        show_primitive_members = False):
-        
-        self.specials_populate = specials_populate
-        self.callables_populate = callables_populate
-        self.private_populate = private_populate
-        self.show_primitive_members = show_primitive_members
-        
-        self.callable_action.setChecked(self.callables_populate)
-        self.special_action.setChecked(self.specials_populate)
-        self.private_action.setChecked(self.private_populate)
-        self.primitive_action.setChecked(self.show_primitive_members)
-        
-        if(self.obj != None):
-            self.populate()
+
 
             
-    def private_state_changed(self,state):
+    def __private_state_changed(self,state):
         self.private_populate =  state       
-        self.populate()
+        self.__populate()
         
-    def callables_state_changed(self,state):
+    def __callables_state_changed(self,state):
         self.callables_populate = state        
-        self.populate()
+        self.__populate()
         
-    def specials_state_changed(self,state):
+    def __specials_state_changed(self,state):
         self.specials_populate = state        
-        self.populate()
+        self.__populate()
         
-    def primitive_state_changed(self,state):
+    def __primitive_state_changed(self,state):
         self.show_primitive_members = state        
-        self.populate()
+        self.__populate()
         
-    def populate(self):     
+    def __populate(self):     
         if(self.obj_type == self.OBJECT_TYPE):
-            self.populate_tree()
+            self.__populate_tree()
         elif(self.obj_type == self.COLLECTION_TYPE):
-            self.populate_table()
+            self.__populate_table()
         elif(self.obj_type == self.PANDAS_TYPE):
-            self.populate_pandas()
+            self.__populate_pandas()
         return
         
-    def populate_tree(self):      
+    def __populate_tree(self):      
         self.treeModel.clear()
         self.treeModel.setHorizontalHeaderLabels(['Name','Type','Size','Value','Path'])
         
@@ -203,12 +201,12 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         #self.treeView.header().resizeSection(4,126)
         
         rootItem = self.treeModel.invisibleRootItem()
-        child_row = self.recursive_add_item(self.obj, self.name, self.name, False)        
+        child_row = self.__recursive_add_item(self.obj, self.name, self.name, False)        
         rootItem.appendRow(child_row) #add all data to tree
         self.treeView.expand(child_row[0].index()) #expands to first level
         
     
-    def recursive_add_item(self, obj_to_add, name, path, special):
+    def __recursive_add_item(self, obj_to_add, name, path, special):
         
         nameItem = QtGui.QStandardItem(name)
         nameItem.setData(obj_to_add, OBJECT_DATA_ROLE)
@@ -224,7 +222,7 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         pathItem = QtGui.QStandardItem(path)
         
         #by default all items are generic objects
-        items = self.get_object_attributes(obj_to_add, callables = self.callables_populate, specials = self.specials_populate, privates=self.private_populate)
+        items = self.__get_object_attributes(obj_to_add, callables = self.callables_populate, specials = self.specials_populate, privates=self.private_populate)
         type_ = 'OBJECT'
         icon = QtGui.QIcon("icons//object_icon_12px.png")
         
@@ -244,7 +242,7 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
             icon = QtGui.QIcon("icons//dataframe_icon_12px.png")  
         elif(isinstance(obj_to_add, abc.Collection) and not isinstance(obj_to_add, str)):
             #this is a collection type, need to get the items
-            items = self.get_collection_items(obj_to_add) 
+            items = self.__get_collection_items(obj_to_add) 
             if(isinstance(obj_to_add, abc.Mapping)):
                 #dicts and mappings
                 type_ = 'MAPPING'
@@ -285,7 +283,7 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
             for key in items:
                 #print("key : " + str(key))
                 item = items[key]
-                if(self.special(key) == True):
+                if(self.__special(key) == True):
                     #print("no recusion for: " + str(key))
                     special_child = True
                 else:
@@ -293,18 +291,18 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
                     special_child = False
     
                 if(type_ == 'MAPPING'):
-                    child_row = self.recursive_add_item(item, '\'' + str(key) + '\'', path + '[\'' + str(key) + '\']', special_child)
+                    child_row = self.__recursive_add_item(item, '\'' + str(key) + '\'', path + '[\'' + str(key) + '\']', special_child)
                 elif(type_ == 'SEQUENCE'):
-                    child_row = self.recursive_add_item(item, '[' + str(key) + ']', path + '[' + str(key) + ']',special_child)
+                    child_row = self.__recursive_add_item(item, '[' + str(key) + ']', path + '[' + str(key) + ']',special_child)
                 elif(type_ == 'OBJECT'):
-                    child_row = self.recursive_add_item(item, str(key), path + '.' + str(key), special_child)
+                    child_row = self.__recursive_add_item(item, str(key), path + '.' + str(key), special_child)
     
                     
                 nameItem.appendRow(child_row)
                 
             return [nameItem, typeItem, sizeItem, valueItem, pathItem]
         
-    def populate_pandas(self):
+    def __populate_pandas(self):
         self.tableModel.clear()
         
         index_column = [str(item) for item in list(self.obj.index)]
@@ -321,15 +319,15 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         self.tableModel.setHorizontalHeaderLabels(columns)
         self.tableView.verticalHeader().setVisible(True)
         self.tableModel.setVerticalHeaderLabels(index_column)
-        self.tableView.horizontalHeader().setStretchLastSection(False)
+        self.tableView.horizontalHeader().setStretchLastSection(True)
         return
         
     
-    def populate_table(self):
+    def __populate_table(self):
                 
         self.tableModel.clear()   
         
-        items = self.get_collection_items(self.obj)
+        items = self.__get_collection_items(self.obj)
 
             
         for key in items:
@@ -365,13 +363,13 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
             
             
             
-    def special(self,attr_name):
+    def __special(self,attr_name):
         #tests if the attribute is a special (ie magic, dunder etc) attribute
         if(attr_name.startswith('__') and attr_name.endswith('__')):
             return True
         else: return False
         
-    def private(self,obj, attr_name):
+    def __private(self,obj, attr_name):
         #tests if the attribute is private
         obj_name = type(obj).__name__
         if(attr_name.startswith('_' + obj_name + '__')):
@@ -379,7 +377,7 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         else: 
             return False
         
-    def get_collection_items(self,collection):
+    def __get_collection_items(self,collection):
         #return the items in dict form
         #print("get_collection_items : " + str(collection))
         if(isinstance(collection, abc.Mapping)): 
@@ -400,20 +398,20 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         return items
         
         
-    def get_object_attributes(self, obj, callables = True, specials = True, privates = True):  
+    def __get_object_attributes(self, obj, callables = True, specials = True, privates = True):  
         item_keys = dir(obj)
         items = {item_key: getattr(obj, item_key) for item_key in item_keys}
         for item_key, item in items.copy().items():
             if(callable(item) and callables == False):
                 del items[item_key]
-            elif(self.special(item_key) and specials == False):
+            elif(self.__special(item_key) and specials == False):
                 del items[item_key]
-            elif(self.private(obj, item_key) and privates == False):
+            elif(self.__private(obj, item_key) and privates == False):
                 del items[item_key]
         return items
     
     
-    def treeView_item_entered(self, index):
+    def __treeView_item_entered(self, index):
         #print(str(index))
         
         #print("row: " + str(self.treeModel.itemFromIndex(index).row()) + ", col: " + str(self.treeModel.itemFromIndex(index).column()))
@@ -422,15 +420,13 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
         pathItem = index.sibling(row, 4)
         
         child_name = pathItem.data()
-        
-        
-        
+
         if(child_name != self.name):
-            self.show_child_widget(childDataItem, child_name)           
+            self.__show_child_widget(childDataItem, child_name)           
         else:
             return
         
-    def tableView_item_entered(self,index):
+    def __tableView_item_entered(self,index):
         row = self.tableModel.itemFromIndex(index).row()
         #print(row)
         childDataItem = index.sibling(row,0)
@@ -451,37 +447,40 @@ class objectViewerWidget(QtWidgets.QWidget, Ui_objectViewerWidget):
             #unknown collection type
             return
         
-        self.show_child_widget(childDataItem, child_name)    
+        self.__show_child_widget(childDataItem, child_name)    
         # pathItem = index.sibling(row, 4)
         
         # child_name = pathItem.data()
         
 
     
-    def show_child_widget(self, childDataItem, child_name):  
-        child_object = childDataItem.data(OBJECT_DATA_ROLE)     
-        if(type(child_object) == None):
-            return
-        if(self.open_child_in_same_widget):
-            self.upLevelToolButton.setEnabled(True)
-            self.stack.append((self.obj, self.name)) #add to the stack
-            self.set_object_data(child_object, child_name, self.open_child_in_same_widget)
-            pass
+    def __show_child_widget(self, childDataItem, child_name):
+        if(self.open_children == True):
+            child_object = childDataItem.data(OBJECT_DATA_ROLE)     
+            if(type(child_object) == None):
+                return
+            if(self.open_child_in_same_widget):
+                self.upLevelToolButton.setEnabled(True)
+                self.stack.append((self.obj, self.name)) #add to the stack
+                self.set_object_data(child_object, child_name, self.open_children, self.open_child_in_same_widget, self.callables_populate, self.specials_populate,self.private_populate, self.show_primitive_members,self.hide_options)
+                
+            else:
+                pos = self.pos()
+                pos.setX(pos.x() + 30)
+                pos.setY(pos.y() + 30)
+                
+                childObjectViewerWidget = objectViewerWidget()
+                childObjectViewerWidget.set_object_data(child_object, child_name, self.open_children, self.open_child_in_same_widget, self.callables_populate, self.specials_populate,self.private_populate, self.show_primitive_members,self.hide_options)
+                childObjectViewerWidget.move(pos)
+                childObjectViewerWidget.show()
+                
+                self.child_widgets.append(childObjectViewerWidget)
         else:
-            pos = self.pos()
-            pos.setX(pos.x() + 30)
-            pos.setY(pos.y() + 30)
+            pass
             
-            childObjectViewerWidget = objectViewerWidget()
-            childObjectViewerWidget.set_object_data(child_object, child_name, self.open_child_in_same_widget, self.callables_populate,self.specials_populate,self.private_populate,self.show_primitive_members)
-            childObjectViewerWidget.move(pos)
-            childObjectViewerWidget.show()
-            
-            self.child_widgets.append(childObjectViewerWidget)
-            
-    def up_level(self):
+    def __up_level(self):
         parent_object, parent_name = self.stack.pop()
-        self.set_object_data(parent_object, parent_name, self.open_child_in_same_widget)
+        self.set_object_data(parent_object, parent_name, self.open_children, self.open_child_in_same_widget, self.callables_populate, self.specials_populate,self.private_populate, self.show_primitive_members,self.hide_options)
         
     def closeEvent(self, event):
         for widget in self.child_widgets:

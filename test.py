@@ -42,11 +42,13 @@ app = QtWidgets.QApplication([])
 widget = objectViewerWidget()
 widget.set_object_data(object_, 
                        'object_',
+                        open_children=False,
                         open_child_in_same_widget=False,
                         callables_populate = False,
                         specials_populate = False,  
-                        private_populate = True,
-                        show_primitive_members = False)
+                        private_populate = False,
+                        show_primitive_members = False,
+                        hide_options = True)
 
 widget.show()
 app.exec()
