@@ -41,7 +41,7 @@ object_.bool = True
 app = QtWidgets.QApplication([])
 widget = objectViewerWidget()
 widget.set_object_data(object_, 
-                       'object_',
+                       'ObjectViewer',
                         open_children=False,
                         open_child_in_same_widget=False,
                         callables_populate = False,
